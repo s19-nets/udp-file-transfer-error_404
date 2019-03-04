@@ -4,19 +4,35 @@ from socket import *
 import sys, os, re, time, struct
 
 serverSock = socket(AF_INET,SOCK_DGRAM)
-serverAddr = (('127.0.0.1',50000))
+serverSock.settimeout(2)
+serverAddr = (('127.0.0.1', 50000))
 serverSock.bind(serverAddr)
-print('Waiting for request...')
-
-(_fileName, clientAddr) = serverSock.recvfrom(2048)
-fileName = _fileName.decode()
-print('Client, ' + repr(clientAddr) + ' requesting ' + fileName)
-
-file = open(fileName, 'r')
-
 timeouts = 0
 packetID = 1
 
+print('Waiting for request...')
+
+#Waiting for file request. Checks for timeouts, and
+#terminates on 4th.
+while 1:
+    try:
+        (_fileName, clientAddr) = serverSock.recvfrom(1024)
+        timeouts = 0
+        break
+    except:
+        if timeouts >= 4:
+            print('No requests, terminating')
+            sys.exit(1)
+        print('Timeout, waiting for request...')
+        timeouts += 1
+
+#Accesses file
+fileName = _fileName.decode()
+print('Client, ' + repr(clientAddr) + ' requesting ' + fileName)
+file = open(fileName, 'r')
+
+#Sends packets and waits for acknowledgements until end of document is reached,
+#or unless 4 consecutive timeouts occur.
 while 1:
     #File contents read and encoded into UTF-8
     fileContents = file.read(98)
@@ -27,15 +43,44 @@ while 1:
     serverSock.sendto(_packet, clientAddr)
 
     #Stops and waits for acknowledgement of packet just sent
-    #Resends packet if incorrect ID acknowledgement is recieved
+    #Resends packet if incorrect ID acknowledgement is recieved,
+    #or if a timeout occurs.
     while 1:
-        _ACK = serverSock.recv(2)
+
+        #Checks and counts timeouts
+        while 1:
+            try:
+                _ACK = serverSock.recv(2)
+                timeouts = 0
+                break
+            except:
+                if timeouts >= 4:
+                    print('Client unresponsive, terminating.')
+                    sys.exit(1)
+                serverSock.sendto(_packet, clientAddr)
+                print('Timeout...')
+                timeouts += 1
+
         ACK = struct.unpack('H', _ACK)[0]
         print(str(ACK))
         print(str(packetID))
-        if ACK == packetID: break
-        serverSock.sendto(_packet, clientAddr)
 
+        #Checks if the proper packet was acknowledged, if not
+        #server waits for next acknowledgement
+        if ACK == packetID:
+            wrongPacket = 0
+            break
+
+        #Terminates after the fourth incorrect acknowledgement
+        if wrongPacket >= 4:
+            print('Network malfunction, terminating.')
+            sys.exit(1)
+        #Packet is resent so client can acknowledge
+        serverSock.sendto(_packet, clientAddr)
+        wrongPacket += 1
+
+    #Stops sending packets after end of file is reached.
+    #FIX: SERVER NEEDS TO WAIT FOR LAST ACK
     if not fileContents: break
     packetID += 1
 
