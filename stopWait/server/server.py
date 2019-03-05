@@ -9,6 +9,8 @@ serverAddr = (('127.0.0.1', 50000))
 serverSock.bind(serverAddr)
 timeouts = 0
 packetID = 1
+#temporary eof/end-of-transmission token for clientSock.recv() to stop
+eof = ''
 
 print('Waiting for request...')
 
@@ -16,7 +18,7 @@ print('Waiting for request...')
 #terminates on 4th.
 while 1:
     try:
-        (_fileName, clientAddr) = serverSock.recvfrom(1024)
+        (_fileName, clientAddr) = serverSock.recvfrom(100)
         timeouts = 0
         break
     except:
@@ -26,8 +28,16 @@ while 1:
         print('Timeout, waiting for request...')
         timeouts += 1
 
-#Accesses file
 fileName = _fileName.decode()
+
+#Makes sure file exists. Terminates if not.
+if not os.path.isfile('./' + fileName):
+    print('Client requesting non-existant file, terminating.')
+    _packet = struct.pack('H98s', 0, eof.encode())
+    serverSock.sendto(_packet, clientAddr)
+    sys.exit(1)
+
+#Accesses requested file.
 print('Client, ' + repr(clientAddr) + ' requesting ' + fileName)
 file = open(fileName, 'r')
 
@@ -84,8 +94,6 @@ while 1:
     if not fileContents: break
     packetID += 1
 
-#temporary eof token for recv() to stop
-eof = ''
 serverSock.sendto(eof.encode(), clientAddr)
 
 file.close()

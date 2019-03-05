@@ -9,7 +9,7 @@ serverAddr = (('127.0.0.1',50000))
 
 #fileName = input("Enter the file name in name.extension format.\n")
 fileName = 'test.txt'
-print('Requesting file: ' + fileName)
+print('Requesting file ' + fileName + '...')
 requestedFile = open(fileName, 'w')
 _fileName= fileName.encode()
 clientSock.sendto(_fileName, serverAddr)
@@ -31,6 +31,11 @@ while 1:
     #TODO: consider trying to remove padding in last packet
     (packetID, _fileContents) = struct.unpack('H98s', _packet)
 
+    #Terminates if server can't find requested fileName
+    if not packetID:
+        print('Requested file cannot be found, terminating.')
+        sys.exit(1)
+
     #Stops and waits until expected packet is recieved.
     #Terminates after four incorrect packets arrive, assumes network
     #is unstable
@@ -45,7 +50,7 @@ while 1:
         if wrongPacket >=4:
             print('Network malfunction, terminating.')
             sys.exit(1)
-            
+
     #Decode and write text to file
     fileContents = _fileContents.decode()
     print(fileContents)
