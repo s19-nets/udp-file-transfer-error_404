@@ -5,7 +5,7 @@ import sys, os, re, time, struct
 
 serverSock = socket(AF_INET,SOCK_DGRAM)
 serverSock.settimeout(2)
-serverAddr = (('127.0.0.1', 50000))
+serverAddr = (('127.0.0.1', 50001))
 serverSock.bind(serverAddr)
 timeouts = 0
 packetID = 1
