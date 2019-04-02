@@ -43,7 +43,6 @@ def processPacket():
     ACK = struct.pack('H', packetID)
     clientSock.sendto(ACK, serverAddr)
     expectedID += 1
-    print('client boop')
 
 def closeFile():
     requestedFile.close()

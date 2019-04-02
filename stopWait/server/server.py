@@ -10,7 +10,7 @@ serverSock.bind(serverAddr)
 print('Waiting for request...')
 clientAddr = ''
 fileName = ''
-file = 0
+file = ''
 timeout = 3
 timeouts = 0
 packetID = 1
@@ -46,11 +46,6 @@ def sendNextPacket(sock):
     _packet = struct.pack('H98s', packetID, _fileContents)
     sock.sendto(_packet, clientAddr)
 
-    #Stops and waits for acknowledgement of packet just sent
-    #Resends packet if incorrect ID acknowledgement is recieved
-    print('boopserver')
-
-
 def checkAck(sock):
     global packetID
     global _packet
@@ -58,8 +53,6 @@ def checkAck(sock):
 
     _ACK = sock.recv(2)
     ACK = struct.unpack('H', _ACK)[0]
-    print(str(ACK))
-    print(str(packetID))
     if ACK == packetID:
         packetID += 1
         return True
@@ -78,7 +71,7 @@ errorSockFunc = {}
 readSockFunc[serverSock] = sendNextPacket
 
 while 1:
-    print('boopwhile')
+
     readRdySet, writeRdySet, errorRdySet = select(list(readSockFunc.keys()),
                                                 list(writeSockFunc.keys()),
                                                 list(errorSockFunc.keys()),
@@ -93,7 +86,6 @@ while 1:
             sys.exit(1)
 
     for sock in readRdySet:
-        print('boopfor')
         if fileName == '':
             openFile(sock)
             sendNextPacket(sock)
