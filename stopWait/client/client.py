@@ -27,9 +27,6 @@ def processPacket():
     #TODO: consider trying to remove padding in last packet
     (packetID, _fileContents) = struct.unpack('H98s', _packet)
 
-    print(str(expectedID))
-    print(str(packetID))
-
     #Stops and waits until expected packet is recieved
     while packetID != expectedID:
         _packet = clientSock.recv(100)
